@@ -156,6 +156,14 @@ readFregeOnline timing download = do
             yield ("frege", "http://google.com/", lstrFromChunks [src])
     return (Map.empty, Set.singleton "frege", source)
 
+readFlowtypeOnline :: Timing -> Download -> IO (Map.Map String Package, Set.Set String, Source IO (String, URL, LStr))
+readFlowtypeOnline timing download = do
+    frege <- download "flowtype-flowtype.txt" "http://try.frege-lang.org/hoogle-frege.txt"
+    let source = do
+            src <- liftIO $ strReadFile frege
+            yield ("flowtype", "http://google.com/", lstrFromChunks [src])
+    return (Map.empty, Set.singleton "flowtype", source)
+
 
 readHaskellGhcpkg :: Timing -> Settings -> IO (Map.Map String Package, Set.Set String, Source IO (String, URL, LStr))
 readHaskellGhcpkg timing settings = do
@@ -206,7 +214,8 @@ actionGenerate g@Generate{..} = withTiming (if debug then Just $ replaceExtensio
                 | otherwise -> readHaskellDirs timing settings local_
         Frege | [] <- local_ -> readFregeOnline timing download
               | otherwise -> errorIO "No support for local Frege databases"
-        FlowType -> errorIO "No support for local FlowType databases"
+        FlowType | [] <- local_ -> readFlowtypeOnline timing download
+                 | otherwise -> errorIO "No support for local FlowType databases"
 
     let (cblErrs, popularity) = packagePopularity cbl
     want <- return $ if include /= [] then Set.fromList include else want
@@ -222,8 +231,8 @@ actionGenerate g@Generate{..} = withTiming (if debug then Just $ replaceExtensio
 
             let consume :: Conduit (Int, (String, URL, LStr)) IO (Maybe Target, [Item])
                 consume = awaitForever $ \(i, (pkg, url, body)) -> do
-                    timedOverwrite timing ("[" ++ show i ++ "/" ++ show (Set.size want) ++ "] " ++ pkg) $
-                        parseHoogle (\msg -> warning $ pkg ++ ":" ++ msg) url body
+                    let result = parseHoogle (\msg -> warning $ pkg ++ ":" ++ msg) url body
+                    trace ("Body is -> " ++ show body) timedOverwrite timing ("[" ++ show i ++ "/" ++ show (Set.size want) ++ "] " ++ pkg) result
 
             writeItems store $ \items -> do
                 xs <- runConduit $
