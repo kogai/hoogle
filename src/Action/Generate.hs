@@ -158,7 +158,7 @@ readFregeOnline timing download = do
 
 readFlowtypeOnline :: Timing -> Download -> IO (Map.Map String Package, Set.Set String, Source IO (String, URL, LStr))
 readFlowtypeOnline timing download = do
-    frege <- download "flowtype-flowtype.txt" "https://github.com/kogai/hoogle/blob/generate-mock-of-flow-type/sample.txt"
+    frege <- download "flowtype-flowtype.txt" "https://raw.githubusercontent.com/kogai/hoogle/generate-mock-of-flow-type/sample.txt"
     let source = do
             src <- liftIO $ strReadFile frege
             yield ("flowtype", "http://google.com/", lstrFromChunks [src])
@@ -231,8 +231,8 @@ actionGenerate g@Generate{..} = withTiming (if debug then Just $ replaceExtensio
 
             let consume :: Conduit (Int, (String, URL, LStr)) IO (Maybe Target, [Item])
                 consume = awaitForever $ \(i, (pkg, url, body)) -> do
-                    let result = parseHoogle (\msg -> warning $ pkg ++ ":" ++ msg) url body
-                    trace ("Package is -> " ++ pkg) timedOverwrite timing ("[" ++ show i ++ "/" ++ show (Set.size want) ++ "] " ++ pkg) result
+                    timedOverwrite timing ("[" ++ show i ++ "/" ++ show (Set.size want) ++ "] " ++ pkg) $
+                        parseHoogle (\msg -> warning $ pkg ++ ":" ++ msg) url body
 
             writeItems store $ \items -> do
                 xs <- runConduit $
