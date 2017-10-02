@@ -1,0 +1,7 @@
+-- | Public interface for the various prelude modules
+module ramda
+
+-- | Print a value to the standard output writer. 
+--   This will come out UTF8 encoded.
+@url https://github.com/flowtype/flow-typed/tree/master/definitions/npm/ramda_v0.x.x
+map ∷ (t -> r) -> [t] -> [r]
